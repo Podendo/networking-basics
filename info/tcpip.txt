@@ -1,0 +1,116 @@
+Transission Control Protocol and IP protocol
+Whereas te OSI Reference Model is conceptual. the TCP/IP stack is used to
+	transfer data in production networks. TCP/IP is also layered but
+	does not use all of the OSI layers, though the layers are equiva
+	lent in operation and function.
+
+OSI MODEL:		|	TCP/IP Stack
+1. Application		|	1. Application
+2. Presentation		|
+3. Session		|
+4. Transport		|	2. Transport
+5. Network		|	3. Internet
+6. Data Link		|	4a Network access
+7. Physical		|	4b Network access
+
+Layer 7 - application
+Layer 6 - presentation
+Layer 5 - session
+Layer 4 - transport - includes TCP/UDP/Port
+Layer 3 - Network - includes 4 + IP Address - devices used: Routers
+Layer 2 - Data-Link - includes 3 + Ethernet MAC - devices used: Switches
+Layer 1 - Physical - all stuff as bits		- devuces used: Hubs
+
+Host Communication Terminology:
+
+Application	--> Data
+Transport	--> Segment
+Internet	--> Packet
+Network Access  --> Frame
+
+
+the transport layer
+	- provides transparent transfer of data between hosts
+		and is resposnible for end-to-end error recovery
+		and flow control.
+	- flow control is the process of adjusting the flow of data
+		from the sender to ensure that the receiving host can
+		handle all of it.
+
+	- port number for transport layers is used to identify the upper
+		layer protocol. For example, HTTP uses port 80. SMTP 25.
+		The sender also adds a source port number to the layer 4
+		header. The combination of source and destination port
+		number can be used to track sessions.
+
+session multiplexing
+	session multiplexing is the process by which a host to support
+	multiple sessions simultaneously and manage the individual traffic
+	streams over a single link
+
+TRANSPORT CONTROL PROTOCOL and USER DATAGRAM PROTOCOL
+	- most common transport level (layer 4) protocols.
+	- TCP connection is oriented, TCP-3-handshake SYN/SYN-ACK/ACK
+	- TCP performs flow control
+	- TCP receiving host sends acknoledgments back, lost segments resent
+	- TCP carries out sequencing to ensure segments are processed in order
+
+	- UDP sends traffic best effort
+	- UDP is not connection oriented. There is no handshake connection
+	- UDP does not carry out sequencing to ensure segments processing orded
+	- UDP hosts does not send acknoledgements back to sender
+	- UDP does not perform flow control
+	- UDP error detection and recovery are provided by upper layers
+
+Common applications and their destination ports:
+TCP
+- FTP (21)
+- SSH (22)
+- Telnet (23)
+- HTTP (80)
+- HTTPS (443)
+- DNS (53)
+
+UDP
+- TFTP (69)
+- SNMP (161)
+- DNS (53)
+
+
+THE NETWORK LAYER
+	- routing packets to their destination and for Quality of Service
+	- IP (internet protocol) - IPv4 / IPv6 are common case (also IPsec)
+	- connectionless protocol with acknojedgements at layer 3
+	- other layer 3 protocol - ICMP (Internet Control Message Protocol)
+	- addressing is a logical addressing scheme implemented at layer 3
+	- the network designer uses IP addressing for nets/subnets
+	- layer 2 MAC adresses use one big flat addressing scheme, there is
+		no logical separation between networks at layer 2, it`s on 3rd
+
+IPv4 Addresses:
+	- an IPv4 address is 32 bits long
+	- it is written as 4 'octets' in dotted decimal formal
+		for example, 192.168.10.15
+	- each octet is 8 bits long (4 x 8 = 32)
+	- the IP address is usually set manually on servers, printers, network
+		devices suck as routers and switches. It is usually assigned
+		automatically through the DHCP protocol on desktop computers
+		(Dynamic Host Configuration Protocol).
+	- to understand how the logical separation between subnet works, you
+		need to understand the IP address in binary (see documentation)
+
+Subnet masks:
+to set the boundary between logical network (subnets), the IP address is combined
+with a subnet mask. A host can send traffic directly to another host on the same
+subnet via switches. For a host to send traffic to another host in a different
+subnet, it must be forwarded by a router.
+The host therefore needs to understand if the destination is on the same or a
+different subnet in order to know how to send it - for this the subnetmask used.
+subnetmask is also 32 bits long and can be written in  dottent decimal or slash
+notation. A host`s IP address is divided into a network portion and a host portion.'
+The subnet mask defines where the boundary is.
+
+Ex...
+Host`s IP address is 192.168.10.15 and its subnetmask is 255.255.255.0
+So we have 192.168.10.15 / 255.255.255.0 - host`s addresses are 192.168.10
+				local target address is .15 - send directly

@@ -1,0 +1,467 @@
+
+The basic mechanism of clent-server setup:
+	1. A client app send a request to a server app.
+	2. The server app returns a reply.
+	3. Basic data communication processing:
+		- File transfer - sends name and gets a file.
+		- Web page - sends url and gets a page.
+		- Echo - sends a message and gets it back.
+
+Server socket:
+	1. create a socket - get the file descriptor.
+	2. bind to an address - what port am i on?
+	3. listen to a port, wait for a connection to be established.
+	4. accept the conenction from a client.
+	5. sends/recv - the same as read/write to file.
+	6. shutdown - to end read/write
+	7. close - to releases data.
+Client socket:
+	1. create a socket
+	2. bind* - this is probably be unnecesary because you`re the client
+	3. connect to the server.
+	4. send/recv - repeat unti; we have or receive data.
+	5. shutdown to end read/write.
+	6. close to releases data.
+
+	/* SUMMARY ABOUT SOCKET MECHANISMS */
+
+1. Socket is a way of speaking to other programs using standart file descriptors
+2. To get file decsriptor, call to the socket() system routine, ater returning a
+	socket descriptor, we start communicate through it using specialized API
+	calls for socket - send()/recv().
+
+3. A TCP socket is an endpoint instance
+4. A TCP socket is not a connection, it is the endpoint of specific connection.
+5. A TCP connection is defined by two endpoints of a specific connection.
+6. The purpose of ports is to diff multiple endpoints on a giver network address.
+7. The port numbers are ecnoded in the transport protocol packet header, and they
+	can be readily interpeted not only by the sending and receiving computers,
+	but also by other components of the networking infrastructure. Actually,
+	FIREWALLS are commonly configured to differentiate between packets based
+	on their source or destination port numbers as in port forwarding.
+
+8. It is the socket pair(the 4-tuple consisting of the client IP address, client
+	port number, server IP address, and server port number) that specifies the
+	two endpoints that uniquely identifies each TCP connection in an internet.
+
+9. Only one process may nind yo a specific OP address and port combination using 
+	the same transport protocol. Otherwise, we will have port conflicts, where
+	multiple programs attempt to bind to the same port numbers on the same
+	protocol.
+
+10. To connect to another machine, we need a socket connection. Socket connection
+	means SW connection between programs, knowing how to communicate with
+	each other (sending bits), they need to know:
+		- network location (IP ADDRESS) and TCP port.
+		- both server and client must create a socket object.
+
+!!!!
+A socket is a resource assigned to the server process. The server creates it using
+the system call socket() and it can`t be shared with another processes.
+
+!!!!
+PROTOCOLS COMPARISON ACCORDING TO SOCKET TYPES:
+
+TCP (Streams)		UDP (Datagrams)
+Need to maintain		Don`t have to maintain an open connecion
+an open connection		- build packet, put IP header, send it out.
+				- can be connect() if we really want.
+
+SOCK_STREAM		SOCK_DGRAM
+saved item-sending	- ignore the dropped packets, speed
+ordering.		- may arrive out of order.
+flow control		can send regardless of receiver state
+
+http, telnet		tftp, dhcpcd, streaming audio, video etc..
+
+1. Stream sockets - reliable two-way communication. There is immediate  confirm
+	that what we said actually reached the destination. Stream sockets use
+	TCP - Transmission Control Protocol, which exists on the transport layer
+	of the Open System Interconnection (OSI). Data transmitted in packets.
+
+2. Datagram sockets - use UDP - User Datagram Protocol, actually it is not a real
+	connection, just a basic method of sendoing data from one point to another.
+
+
+/* Client-server communication */
+
+!!!!
+The steps to establish a socket on the sever side:
+1. Create a socket with the socket() system call.
+2. Server process gives the socket a name. in Linux FS - /usr/tmp/ directory
+	for network sockets, filename fill be a service identifier, port number
+	to which the clients can make connection. This identifer allows to route
+	incoming connections (which has the port number) to connect server process.
+	! a socket is named using bind() system call.
+
+3. THe server process then waits for a client to connect to the named socket, which
+	is basically listening for connection with the listem() system call. If there
+	are more than one client are trying to make connections, the listen() system
+	call make a queue. THe machine receiving the connection (the server) must bind
+	its socket object to a known port number. A port is a 16-bit number that is
+	managed by the OS and used by clients to uniquel identify servers.
+	! ports 0 -1023 are reserved by the system and used by common network protocols.
+
+4. Accept a connection with the accept() system call. At accept(), a new socket is
+	created that is distinct from the named socket. This new socket is used
+	solely for communication with the particular client. For TCP servers, the
+	socket object used to receive connections is not the same socket used to
+	perform subsequent communication with the client. In particular, the
+	accept() system call returns a new socket object that`s actually used for
+	the connection. This allows a server to manage connections from a large
+	number of clients simultaneously.
+
+5. Send a receive data - data exchange according to protocol.
+6. The bamed socket remains for further connections from other clients.
+	A typical web server can take advantage of multiple connections.
+	In other words, it can serve pages to many clients at once. But
+	for a simple server, further clients wait on the listen queue
+	unltil the server is ready again.
+
+!!!!
+The steps to establish on the client side:
+1. Create a socket with the socket() system call.
+2. Connect the socket to the address  of the sertver using the coonect() syscall.
+3. Send and receive data. There are a number of ways to do this, but the simplest
+	is to use the read() and write() system calls.
+
+
+primitive			Meaning
+- SOCKET			- Create a new communication endpoint
+- BIND				- Assosiate a local addr (port) with a socket
+- LISTEN(streams)		- Announce willingness to accept connections
+- ACCEPT(streams)		- Passively establish an incoming connection
+- CONNECT(streams)		- Actively attempt to establish a connection
+- SEND{TO_FROM}			- Send some data over the socket
+- RECEIVE{TO_FROM}		- Receive some data over the socket
+- CLOSE				- Release the socket
+
+
+
+
+LIB WORK WITH SOCKETS: /user/include/sys/sockets.h
+* int socket(int domain, int type, int protocol)
+	- domain - the protocol family of socket being requested
+	- type - the type of socket within that family
+	- protocol - type of protocol for communication
+
+* int bind(int fd, struct sockaddr *local_addr, socklet_t addr_length)
+
+* int listen(int fd, int backlog_queue_size)
+
+* int accept(int fd, struct sockaddr *remote_host, socklen_t addr_length)
+
+* int connect(int fd, struct sockaddr *remote_gost, socklen_t addr_length)
+	/* this is a blocking call */
+
+* int send(int fd, void *buffer, size_t n, int flags)
+
+* int receive(int fd, void *buffer, size_t n, int flags)
+	/* this is a blocking call */
+
+			/* Types of sockets.  */
+enum __socket_type
+{
+  SOCK_STREAM = 1,              /* Sequenced, reliable, connection-based
+                                   byte streams.  */
+#define SOCK_STREAM SOCK_STREAM
+  SOCK_DGRAM = 2,               /* Connectionless, unreliable datagrams
+                                   of fixed maximum length.  */
+#define SOCK_DGRAM SOCK_DGRAM
+  SOCK_RAW = 3,                 /* Raw protocol interface.  */
+#define SOCK_RAW SOCK_RAW
+  SOCK_RDM = 4,                 /* Reliably-delivered messages.  */
+#define SOCK_RDM SOCK_RDM
+  SOCK_SEQPACKET = 5,           /* Sequenced, reliable, connection-based,
+                                   datagrams of fixed maximum length.  */
+#define SOCK_SEQPACKET SOCK_SEQPACKET
+  SOCK_PACKET = 10              /* Linux specific way of getting packets
+                                   at the dev level.  For writing rarp and
+                                   other similar things on the user level. */
+#define SOCK_PACKET SOCK_PACKET
+};
+
+/* Sharing between processes - Sockets */
+Network Byte Order:
+The port number and IP address used in the AF_INET socket address structure are
+	expected to follow the network byte ordering (big-endian). This is the
+	opposite of x86 little-endian byte-ordering, so these values must be
+	converted. There are specialized functions for the conversions:
+		1. htonl(long value) Host-to-Network long (32-bit int)
+		2. htons(short value) Host-to-Network short (16-bit int)
+		3. ntohl(long value) Network-to-Host Long (32-bit int)
+		4. ntohs (short value) Network-to-Host Short (16-bit int)
+
+Internet Address Conversion
+	1. inet_aton(char *ascii_addr, struct in_addr *network_addr)
+		/* converts an ASCII string IP address in dotted number
+		 * format into an in_addr, which only cpntains 32-bit integer BE
+		 **/
+	2. inet_ntoa(struct *network_addr)
+		/* it is passed a pointer to an in_addr structure containing an
+		 * IP address, and the function returns a character pointer to
+		 * an ASCII sring containing the IP address in dotted-num form.
+		 * this string is held in a statically allocated memory buffer
+		 * in the function, so it can be accessed until the mext call
+		 * to inet_ntoa(), and the string will be overwritten.
+		 **/
+
+TCP Connection establishment: Three-way-handshake
+	To establish a connection, TCP uses a three-way-handshake. Before a cli
+	attempts to connect with a server, the server must first nind to and
+	listen at a port to open it up for connections: this is called a
+	PASSIVE OPEN. Once the passive open is established, a client may
+	initialte an active open.
+
+	1) Both sender and receiver must be ready before data transport starts,
+		and they need to agree on set of parameters such as Maximum
+		segment size (MSS).
+	2) TCP end points maintain state about communications in both directions
+		and the handshake allows the state to be created and initialized.
+	3) TCP establishes a stream of bytes in both directions, and the three-way
+		handshake allows both streams to be established and acknoledged.
+
+Establishing connections:
+	1. SYN: The active open is performed by the client sending a SYN to the server
+	2. SYN-ACK: In response, the server replies with a SYN-ACK.
+	3. ACK: Finally, the client sends an ACK back to the server.
+
+	Example:
+		1) Host 'A' sends a FIN
+		2) host 'B' replies with a ACK (with data) + FIN
+		3) host 'A' reblies with a ACK
+
+basic network Linux commands (net-tools need):
+	1. ipconfig (internet protocol configuration)
+	2. nslookup (querying the Domain Name System (DNS) to obtain domain name) !!!
+	3. netstat  (network statistic, network connections, routing tables, nic) !!!
+	4. traceroute (display the route (path) and measure the delays of packet) !!!
+
+XINETD/INETD
+	The internet daemon (Disk And Execution MONitor) [xinetd/inetd] listens
+	for connections on many ports at once. When a client connects to a service,
+	the daemon program runs the appropriate server. So, this boils down to the
+	need for server to be running all the time.
+
+NETWORK SNIFFING
+	On a switched network, each packet moves between a computer and a port on
+	a switch, or between two switches. It is the job of the switch to xmit a
+	packet only when the line is clear, and only to the necessart ports. This
+	way, it`s like each computer is on it`s own private network.
+	We never have packet collisions and we leave as much of our network clear
+	as possible. This means we get the most throughput possible out of our nw
+
+	On an unswitched network, all packets go to all ports and visible to all
+	computers. If two computers  want to send a packet at the same time, we
+	have a collision. Both computers must resend, and that particular bit of
+	bandwidth used for the broken transmission is completely wasted.
+	This means that actual network throughput us much lower than the
+	theoretical potential.
+	On networks, where Ethernet packets pass through every device on the nw,
+	expecting each system device to only look at the packets sent to its
+	destination address. But it is quite trivial to set a device to promiscuos mode,
+	which causes it to look at all packets, regardless of the destination address.
+	Most packet-capturing codes, such as tcpdump, drop the device they are listening
+	to into promiscuous mode by default. This promiscuous mode can be set using:
+		- ifconfig eth0 promisc
+		- ifconfig eth0 -promisc
+
+RAW_SOCK SNIFFING
+(using stream sockets, where the data is neatly wrapped in a TCP/IP connection.)
+
+* for raw sockets you need to use SOCK_RAW specifier in your code
+* the protocol matters because there are multiple options.
+	it can be IPPROTO_TCP or IPPROTO_UDP. Example for TCP:
+
+
+
+PACKET SNIFFING USING WGET AND TCPDUMP
+for example checking use links:
+	sudo tcpdump port 80 -XX -s 1024
+	wget http://ad.doubleclick.net/ads/813/;order=smsn0009;sz=1x1;o=1922687960
+
+BLOCKING socket vs non-blocking socket
+by default, TCP socket is set as blocking (sleeping) mode.
+	- accept(), connect(), recv(), recvfrom() are blocking functions
+	- for non-blocking socket we have to make a call to fnctl():
+		#include <unistd.h>
+		#include <fnctl.h>
+		sockfd = socket(PF_INET, SOCK_STREAM, 0);
+		fnctl(sockfd, F_SETFL, O_NONBLOCK);
+
+	By setting a socket to non-blocking, we can poll the socket for
+	information. If we try to read from a non-blocking socket and
+	there is no data there, it is bot allowed to block-it will return -1
+	and errno will be set to EWOULDBLOCK.
+	The non-blocking mode is set by changing one of the socket flags. The
+	flags are a series of bits, each one representing a different capability
+	if the socjet:
+		1. use F_GETFL to get the current flags
+		2. ser or clear the O_NONBLOCK flag.
+		3. then use F_SETFL to set the flags.
+		http://www.scottklement.com/rpg/socktut/nonblocking.html
+
+	In general, the polling is not a goot idea beacuse it makes our
+	program in a busy-wait looking for data on the socket, and it
+	will consume the precious CPU time. select() checks the available data!
+
+select(), non-blocking I/O, SIGIO pros and cons:
+	Using non-blocking I/O means we have to poll sockets to see if there is
+	data to be read from them. Polling should usually be avoided since it
+	uses more CPU time than other techniques.
+
+	Using SIGIO allows out application to do what it does and gave the
+	operating system tell it with a signal that there is data waiting
+	for it on a socket. The only drawback to this solutiong is that it
+	can be confusing, and if we`re dealing wih multiple sockets we will
+	have to do a select() anyway to find out wich one(s) is ready to be read.
+
+	ex:
+
+	#include <sys/time.h>
+	#include <sys/types.h>
+	#include <unistd.h>
+
+	int select(int numfs, fd_set *readfds, fd_set *writefds,
+			fd_set *exceptfds, struct timeval *timeout);
+
+	This function monitors sets of file desciptors; in particular readfds,
+	writefds, abd exceptfds. If we want to see if we can read from standart
+	input and some socket descriptor, sockfd, just add the file desc 0 and
+	sockfd to the set readfds. The parameter numfds should be set to the
+	values of the highest file descriptor plus one. (sockfd+1)
+
+	Using select() is gread if our application has to accept data from more
+	than one socket at a time since it will block until any one of a number
+	of sockets is ready with data. In other words, select() gives us the
+	power to monitor several sockets at the same time.
+
+
+ACTIVE FTP vs PASSIVE FTP
+1. ACtive FTP
+	a) FTP server`s port 21 from anywhere (client initiates connection)
+	b) FTP server`s port 21 to ports > 1023 (server responds to client`s ctl)
+	c) FTP server`s port 20 to ports > 1023 (server inits data connection)
+	d) FTP server`s port 20 from ports > 1023 (client sends ACKs to server`s data port)
+2. Passive FTP
+	a) FTP server`s port 21 from anywhere (client initiates connection)
+	b) FTP server`s port 21 to ports > 1023 (server responds to client`s ctl)
+	c) FTP server`s port > 1023 form anywhere(client inits data connection to
+		random port specified by server)
+	d) FTP server`s ports > 1023 to remote ports > 1023 (server sends AKs and
+		data to client`s data port)
+
+
+				NETWORKING BASICS
+
+Networking topology:
+	4-layer model:
+	[Host A] -> (Router) -> (Router) -> [Host B]
+	Data Flow:
+	[Application]<---process-to-process--->[Application]
+	[Transport]<--------host-to-host-------->[Transport]^
+	[Internet]    [Internet]   [Internet]    [Internet]^
+	[Link]	      [link]       [link]        [Link]^
+	->	(Ethernet)^	(Fiber, opt)^	(Ethernet)^
+
+In network frame encapsulation used for transfering data:
+|Layer		|Unit of data|
+|Application	|Message     |
+|Transport	|Segment     |
+|Network	|Packet	     |
+|Link		|Frame       |
+|Physical	|Bit	     |
+
+Physical layer
+...
+
+Network layer(Internet)
+	1. The IP is an example of a network layer
+	2. There are currently two main versions: IPv4 IPv6
+	3. Internet protocol is responsible for delivering self-contained
+		datagrams from a source host to the specific destination.
+
+	4. It makes no promise to deliver packets in order, or at all.
+	5. It has a feature to prevent packets looping forever (TTL)
+	6. It will fragment packets of they are too long.
+	7. It uses a checksum to reduce chances of delivering to wrong address.
+
+Property
+Data		Individually routed packets, hop-by-hop routing
+Unrealiable	Packet might be dropped
+Best effort	If nessesary
+Connectionless	No rep-flow-state, packets may not be in order
+
+Transport layer (TCP)
+	1. TCP is responsible for providing reliable in-sequence end-to-end
+		delivery of data between applications. In other words, TCP
+		delivers a stream of bytes from end to other end, reliably
+		and in-sequence, on behalf of an application.
+	2. When a TCP packet arrives at the destination, the data portion is
+		delivered to the service or application identified by the
+		destination port number.
+	3. TCP will retransmit missing data even if the application can not
+		use it for example, in internet telephony a late arriving
+		retransmission may arrive too late to be useful.
+	4. TCP saves an application from having to implement its own mechanisms
+		to retransmit missing data. or resequence arriving data.
+
+Property
+Conenction oriented	three-way-handshake for connecting setup
+Reliable		acknoledgments indicate delivery, checksums for corrupted
+			sequence numbers for missing data, flow control overrunning
+In-sequence		data delivered to application in sequence transmitted
+Cognestion control	it controls network congestion
+
+Packet delivery models
+Unicast		Broadcast	Multicast	Anycast
+
+Internet Control Message Protocol (ICMP)
+making Network layer work
+1. Internet Protocol (IP)
+	a) create IP datagrams
+	b) deliver datagrams from end to end hop-by-gop
+2. Routing tables - algorithms to populate router forwarding tables
+3. ICMP
+	1) examples: ping, tracerouter
+	2) communicates network layer information between end hosts and routers
+	3) reports error conditions
+	4) helps to diagnose problems
+
+Prorerty
+Reporting Message	self-contained message reporting error
+Unreliable		simple datagram service - no retries
+
+ping command sends out ICMP ECHO_REQUEST message to the destination
+traceroute contains a client interface to ICMP, like the ping, it
+	may be used by a user to verify an end-to-end Internet Path
+	is operational, but also provides information on each of the
+	intermeadiate systems (i.e. IP routers) to be found along the
+	IP Path from the sender to the receiver.
+
+traceroute uses ICMP echo messages, these are addressed to the target
+IP address. The sender manipulates the TTL (hop count) value at the IP
+layer to force each hop in turn to return an error message.
+
+Address resolution protocol (ARP)
+	We can retreive MAC address (Ethernet address) via the APR.
+	1) a network device sends an ARP request to the switch
+	2) the switch broadcasts the APR request to all devices
+	3) the device with the appropriate IP address makes an ARP response
+	4) The switch relays the APR response back to the network device
+
+
+ERROR DETECTION
+
+PARITY
+ 7 bit data 1001100 - bit sum is 3m modulo 3%2 = 1 - parity bit is 1
+ send 8 bits including parity bit 10011001 and compute parity
+ 4%2 = 0 -> so we have a correct transmission
+
+CHECKSUMS
+	The checksum field is the 16-bit one`s complement of the one`s complement
+	sum of all 16-bit words
+
+CRC (CYCLIC REDINDANCY CHECK)
+
+/*TODO: TBD */
